@@ -12,8 +12,10 @@ import com.example.user.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
-public class UserServiceImpl implements UserService{
+public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserRegistrationToEntity userRegistrationToEntity;
     private final UserResponseFromEntity fromEntityMapper;
@@ -38,7 +40,7 @@ public class UserServiceImpl implements UserService{
     public UserResponse register(UserRegistration userRegistration) {
         UserEntity entity = userRegistrationToEntity.toEntity(userRegistration);
 
-        if(userRepository.existsByUsername(entity.getUsername())) {
+        if (userRepository.existsByUsername(entity.getUsername())) {
             throw new BadRequestException("Username already exists, please select a different username.");
         }
         entity.setPassword(passwordEncoder.encode(entity.getPassword()));
@@ -62,5 +64,36 @@ public class UserServiceImpl implements UserService{
         }
 
         return user;
+    }
+
+    @Override
+    public UserResponse find(String username) {
+        if (username == null) {
+            throw new BadRequestException("must have username");
+        }
+
+        if (userRepository.existsByUsername(username)) {
+            throw new BadRequestException("user could not be found");
+        }
+
+        return fromEntityMapper.fromEntity(userRepository.findByUsername(username));
+    }
+
+    @Override
+    public List<UserResponse> findAll() {
+        return fromEntityMapper.fromEntity(userRepository.findAll());
+    }
+
+    @Override
+    public void update(UserResponse user) {
+        if(user == null) {
+            throw new BadRequestException("nothing to update");
+        }
+
+        UserEntity currentUser = userRepository.findByUsername(user.getUsername());
+        currentUser.setName(user.getName() != null ? user.getName() : currentUser.getName());
+        currentUser.setUsername(user.getUsername() != null ? user.getUsername() : currentUser.getUsername());
+        currentUser.setPassword(user.getPassword() != null ? user.getPassword() : currentUser.getPassword());
+        currentUser.setRole(user.getRole() != null ? user.getRole() : currentUser.getRole());
     }
 }
